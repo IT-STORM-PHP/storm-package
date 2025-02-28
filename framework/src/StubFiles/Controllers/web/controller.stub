@@ -2,7 +2,7 @@
 
     namespace App\Web\Controllers;
 
-    use StormBin\Storm\Controllers\Controller;
+    use StormBin\Package\Controllers\Controller;
     use StormBin\Package\Views\View;
     class {{controllerName}} extends Controller
     {
