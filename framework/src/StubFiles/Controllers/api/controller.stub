@@ -1,0 +1,17 @@
+<?php
+
+    namespace App\Api\Controllers;
+
+    use StormBin\Package\Controllers\Controller;
+    use StormBin\Package\Views\View;
+    class {{controllerName}} extends Controller
+    {
+        public function index()
+        {
+            $data = [
+                'message'=>'message',
+                'status'=>201   
+            ];
+            return View::jsonResponse($data, 201);
+        }
+    }

@@ -1,0 +1,14 @@
+<?php
+
+    namespace App\Web\Controllers;
+
+    use StormBin\Storm\Controllers\Controller;
+    use StormBin\Package\Views\View;
+    class {{controllerName}} extends Controller
+    {
+        public function index()
+        {
+            // Action par défaut
+            echo 'Hello from {{controllerName}} Controller';
+        }
+    }
