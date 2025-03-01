@@ -1,0 +1,29 @@
+<?php
+
+    namespace App\Web\Models;
+
+    use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+    class {{model}} extends Model
+    {
+        use HasFactory;
+
+        protected $table = ''; // Nom de la table
+
+        protected $primaryKey = ''; // Clé primaire de la table
+
+        protected $fillable = [
+
+        ]; // Champs remplissables
+
+        protected $guarded = [
+
+        ]; // Champs protégé 
+
+        public $timestamps = true; // Active created_at et updated_at si nécessaire
+
+        public function service(){
+            
+        }
+    }

@@ -1,15 +1,20 @@
 <?php
 
 namespace StormBin\Package\Console;
-
+use StormBin\Package\Commands\Controllers\MakeController;
+use StormBin\Package\Commands\Models\MakeModel;
 
 class Kernel 
 {
-    
+    private $makeLogin, $makeMigration, $migrate, $makeController, $makeCrud, $makeModel;
+    public function __construct(){
+        $this->makeModel = new MakeModel();
+        $this->makeController = new MakeController();
+    }
     protected array $commands = [
         'serve' => 'serve',
-        'make:controller'=>'makeController'
-
+        'make:controller'=>'makeController',
+        'make:model'=>'makeModel',
     ];
 
     public function handle($argv)
@@ -33,53 +38,14 @@ class Kernel
     }
 }
 
+public function makeModel($modelName){
+    $this->makeModel->makeModel($modelName);
+}
+
 
 public function makeController($controllerName, $isApi = false)
 {
-    if (!$controllerName) {
-        echo "❌ Veuillez fournir un nom pour le contrôleur.\n";
-        exit(1);
-    }
-
-    // Mettre la première lettre en majuscule
-    $controllerName = ucfirst($controllerName);
-
-    // Déterminer le chemin absolu des fichiers modèles (stubs)
-    $packagePath = dirname(__DIR__, 1); // Remonte de deux niveaux pour atteindre la racine du package
-    if ($isApi) {
-        $stubPath = "$packagePath/StubFiles/Controllers/api/controller.stub";
-        $filePath = getcwd() . "/app/api/Controllers/{$controllerName}.php";
-    } else {
-        $stubPath = "$packagePath/StubFiles/Controllers/web/controller.stub";
-        $filePath = getcwd() . "/app/web/Controllers/{$controllerName}.php";
-    }
-
-    // Vérifier si le contrôleur existe déjà
-    if (file_exists($filePath)) {
-        echo "❌ Le contrôleur '$controllerName' existe déjà.\n";
-        exit(1);
-    }
-
-    // Vérifier l'existence du fichier stub
-    if (!file_exists($stubPath)) {
-        echo "❌ Le fichier modèle '$stubPath' est introuvable.\n";
-        exit(1);
-    }
-
-    // Lire et remplacer les placeholders du fichier stub
-    $content = file_get_contents($stubPath);
-    $content = str_replace('{{controllerName}}', $controllerName, $content);
-
-    // Créer le dossier s'il n'existe pas
-    if (!file_exists(dirname($filePath))) {
-        mkdir(dirname($filePath), 0777, true);
-    }
-
-    // Créer le fichier du contrôleur
-    file_put_contents($filePath, $content);
-
-    $location = $isApi ? 'app/api/Controllers' : 'app/web/Controllers';
-    echo "✅ Contrôleur '$controllerName' créé dans '$location'.\n";
+    $this->makeController->makeController($controllerName, $isApi);
 }
 
 
@@ -116,7 +82,7 @@ public function makeController($controllerName, $isApi = false)
     protected function showUsage()
     {
         echo "Usage: php storm <commande>\n";
-        echo "Commandes disponibles :\n";
+        echo "\32m Commandes disponibles :\n";
         echo "  serve             Démarrer le serveur local\n";
         echo "  make:migration   Créer un fichier de migration\n";
         echo "  migrate           Exécuter les migrations\n";

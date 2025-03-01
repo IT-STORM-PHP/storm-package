@@ -18,7 +18,7 @@ class Database
             $dotenv = Dotenv::createImmutable($rootPath);
             $dotenv->load();
         } else {
-            exit; // Arrêter l'exécution si le fichier .env est absent
+            die("Erreur : Fichier .env non trouvé.");
         }
 
         // Récupérer les valeurs depuis les variables d'environnement
@@ -33,7 +33,7 @@ class Database
         $prefix = $_ENV['DB_PREFIX'] ?? '';
 
         if (!$driver || !$host || !$database || !$username) {
-            exit; // Arrêter l'exécution si une variable essentielle est manquante
+            die("Erreur : Une ou plusieurs variables de connexion à la base de données sont manquantes.");
         }
 
         // Configuration de la connexion à la base de données
@@ -53,7 +53,7 @@ class Database
         try {
             $capsule->getConnection()->getPdo();
         } catch (\Exception $e) {
-            exit; // Arrêter l'exécution en cas d'échec de connexion
+            die("Erreur : Connexion à la base de données échouée. Vérifiez vos informations de connexion.");
         }
 
         // Démarrer Eloquent
