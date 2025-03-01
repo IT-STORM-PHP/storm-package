@@ -3,7 +3,7 @@
     namespace App\Web\Controllers;
 
     use StormBin\Package\Controllers\Controller;
-    use StormBin\Package\Views\View;
+    use StormBin\Package\Views\Views;
     class {{controllerName}} extends Controller
     {
         public function index()

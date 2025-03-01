@@ -1,59 +1,72 @@
 <?php
-
-namespace StormBin\Package\Routes   ;
+namespace StormBin\Package\Routes;
 
 class Route {
     private static array $routes = [];
     private static array $middlewares = [];
     private static array $beforeMiddlewares = [];
+    private static array $namedRoutes = []; // Stocker les routes nommées
+    private static string $groupPrefix = ''; // Préfixe du groupe de routes actuel
+    private static ?self $currentInstance = null; // Instance actuelle pour le chaînage
+    private static ?string $lastAddedRouteUri = null; // Track the last added route URI
 
-    public static function add(string $method, string $uri, array|string|callable $action) {
+    // Ajout de la méthode group
+    public static function group(array $attributes, callable $callback) {
+        if (isset($attributes['prefix'])) {
+            self::$groupPrefix = rtrim($attributes['prefix'], '/');
+        }
+
+        // Appel de la fonction callback pour définir les routes
+        $callback();
+
+        // Réinitialisation du préfixe après le groupe
+        self::$groupPrefix = '';
+    }
+
+    public static function add(string $method, string $uri, array|string|callable $action, string $name = '') {
+        if (self::$groupPrefix) {
+            $uri = self::$groupPrefix . $uri;
+        }
+
         self::$routes[strtoupper($method)][$uri] = $action;
-    }
 
-    public static function get(string $uri, array|string|callable $action) {
-        self::add('GET', $uri, $action);
-    }
+        // Track the last added route URI
+        self::$lastAddedRouteUri = $uri;
 
-    public static function post(string $uri, array|string|callable $action) {
-        self::add('POST', $uri, $action);
-    }
-
-    public static function put(string $uri, array|string|callable $action) {
-        self::add('PUT', $uri, $action);
-    }
-
-    public static function delete(string $uri, array|string|callable $action) {
-        self::add('DELETE', $uri, $action);
-    }
-
-    public static function middleware(string $uri, callable|array $middleware) {
-        self::$middlewares[$uri][] = $middleware;
-    }
-
-public static function beforeMiddleware(array|string $prefixes, callable $callback) {
-    // Vérifier si le callback est une méthode non statique
-    if (is_array($callback) && is_object($callback[0])) {
-        $object = $callback[0]; // L'objet de la méthode
-        if (!is_callable($callback)) {
-            throw new \InvalidArgumentException("Le callback n'est pas valide.");
+        // If a name is given, associate it with the route
+        if ($name) {
+            self::$namedRoutes[$name] = $uri;
         }
     }
-    
-    // Assurer que l'objet de la méthode est instancié si ce n'est pas déjà fait
-    if (is_array($callback) && is_string($callback[0]) && !is_object($callback[0])) {
-        $controllerName = $callback[0];
-        $controller = new $controllerName();
-        $callback[0] = $controller;
+
+    public static function get(string $uri, array|string|callable $action, string $name = ''): self {
+        self::add('GET', $uri, $action, $name);
+        return self::$currentInstance = new self(); // Retourne une instance de Route
     }
 
-    $prefixes = is_array($prefixes) ? $prefixes : [$prefixes];
-    foreach ($prefixes as $prefix) {
-        self::$beforeMiddlewares[$prefix][] = $callback;
+    public static function post(string $uri, array|string|callable $action, string $name = ''): self {
+        self::add('POST', $uri, $action, $name);
+        return self::$currentInstance = new self(); // Retourne une instance de Route
     }
-}
 
+    public static function put(string $uri, array|string|callable $action, string $name = ''): self {
+        self::add('PUT', $uri, $action, $name);
+        return self::$currentInstance = new self(); // Retourne une instance de Route
+    }
 
+    public static function delete(string $uri, array|string|callable $action, string $name = ''): self {
+        self::add('DELETE', $uri, $action, $name);
+        return self::$currentInstance = new self(); // Retourne une instance de Route
+    }
+
+    public static function name(string $name): self {
+        if (self::$lastAddedRouteUri) {
+            self::$namedRoutes[$name] = self::$lastAddedRouteUri;
+        }
+
+        // Retourner l'instance actuelle pour le chaînage
+        return self::$currentInstance;
+    }
 
     public static function dispatch() {
         $method = $_SERVER['REQUEST_METHOD'];
@@ -137,5 +150,23 @@ public static function beforeMiddleware(array|string $prefixes, callable $callba
             echo "500 - Erreur interne: Action non valide.";
             exit();
         }
+    }
+
+    // Méthode pour récupérer une route nommée
+    public static function route(string $name, array $params = []): string {
+        if (isset(self::$namedRoutes[$name])) {
+            $uri = self::$namedRoutes[$name];
+
+            // Remplacer les paramètres dans l'URL
+            if (!empty($params)) {
+                foreach ($params as $key => $value) {
+                    $uri = str_replace('{' . $key . '}', $value, $uri);
+                }
+            }
+
+            return $uri;
+        }
+
+        throw new \Exception("Route nommée '$name' introuvable.");
     }
 }
