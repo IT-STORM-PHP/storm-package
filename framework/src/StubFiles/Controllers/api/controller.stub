@@ -12,6 +12,6 @@
                 'message'=>'message',
                 'status'=>201   
             ];
-            return View::jsonResponse($data, 201);
+            return Views::jsonResponse($data, 201);
         }
     }

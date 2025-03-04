@@ -12,7 +12,7 @@
             $packagePath = dirname(__DIR__, 2);
         
             $stubPath = "$packagePath/StubFiles/Models/Model.stub";
-            $filePath = getcwd() . "/app/web/Models/{$modelName}.php";
+            $filePath = getcwd() . "/app/Models/{$modelName}.php";
         
         
             // Vérifier si le contrôleur existe déjà
@@ -39,7 +39,7 @@
             // Créer le fichier du modele
             file_put_contents($filePath, $content);
         
-            $location =  'app/web/Models';
+            $location =  'app/Models';
             echo "✅ Modèle '$modelName' créé dans '$location'.\n";
         }
     }

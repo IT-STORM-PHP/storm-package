@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Capsule\Manager as Capsule;
+
+return new class extends Migration {
+    public function up()
+    {
+        if (Capsule::schema()->hasTable('{{tableName}}')) {
+            Capsule::schema()->table('{{tableName}}', function ($table) {
+                if (Capsule::schema()->hasColumn('{{tableName}}', 'columName')) {
+                    $table->dropColumn('columName');
+                    echo "Colonne 'columName' supprimée de la table '{{tableName}}'.\n";
+                } else {
+                    echo "La colonne 'columName' n'existe pas dans la table '{{tableName}}'.\n";
+                }
+            });
+        } else {
+            echo "La table '{{tableName}}' n'existe pas.\n";
+        }
+    }
+
+    public function down()
+    {
+        if (Capsule::schema()->hasTable('{{tableName}}')) {
+            Capsule::schema()->table('{{tableName}}', function ($table) {
+                $table->string('columName');
+                echo "Colonne 'columName' ajoutée à la table '{{tableName}}'.\n";
+            });
+        } else {
+            echo "La table '{{tableName}}' n'existe pas.\n";
+        }
+    }
+};
