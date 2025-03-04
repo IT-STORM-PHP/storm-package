@@ -10,41 +10,44 @@ class Migrate
     public function runMigrations()
     {
         Database::init();
-        echo "Capsule initialisé.\n";
-
         $this->ensureMigrationsTableExists();
-        echo "Table 'migrations' vérifiée.\n";
 
         $migrationsPath = "database/migrations/";
         $executedMigrations = $this->getExecutedMigrations();
-        echo "Migrations déja exécutées : " . implode(', ', $executedMigrations) . "\n";
+        $migrationFiles = glob($migrationsPath . '*.php');
 
-        foreach (glob($migrationsPath . '*.php') as $file) {
+        // Filtrer les migrations non exécutées
+        $pendingMigrations = array_filter($migrationFiles, function ($file) use ($executedMigrations) {
+            return !in_array(basename($file, '.php'), $executedMigrations);
+        });
+
+        if (empty($pendingMigrations)) {
+            echo "\033[32mAucune nouvelle migration à exécuter. Tout est à jour !\033[0m\n";
+            return;
+        }
+
+        echo "\n\033[34m🚀 Démarrage des migrations...\033[0m\n";
+        foreach ($pendingMigrations as $file) {
             $migrationName = basename($file, '.php');
+            echo "\033[33m➡️  Exécution de : $migrationName\033[0m\n";
 
-            // Vérifie si la migration a déjà été exécutée
-            if (in_array($migrationName, $executedMigrations)) {
-                continue; // Ignore ce fichier et passe au suivant
-            }
-
-            echo "Application de la migration : {$migrationName}\n";
-
-            // Inclure une seule fois le fichier pour éviter des erreurs
+            // Inclure et exécuter la migration
             $migration = require_once $file;
 
             try {
-                // Vérifie si c'est bien une migration
                 if (is_object($migration) && method_exists($migration, 'up')) {
                     $migration->up();
                     Capsule::table('migrations')->insert(['migration' => $migrationName]);
-                    echo "✅ Migration appliquée avec succès : {$migrationName}\n";
+                    echo "\033[32m✔ Migration appliquée : $migrationName\033[0m\n";
                 } else {
-                    echo "⚠️ Erreur : {$migrationName} n'est pas une instance valide de Migration.\n";
+                    echo "\033[31m⚠️ Erreur : $migrationName n'est pas une instance valide de Migration.\033[0m\n";
                 }
             } catch (\Exception $e) {
-                echo "❌ Erreur lors de l'application de la migration {$migrationName} : " . $e->getMessage() . "\n";
+                echo "\033[31m❌ Erreur lors de la migration $migrationName : " . $e->getMessage() . "\033[0m\n";
             }
         }
+
+        echo "\n\033[32m✅ Toutes les migrations ont été exécutées avec succès !\033[0m\n";
     }
 
     private function getExecutedMigrations()
@@ -60,7 +63,7 @@ class Migrate
                 $table->string('migration')->unique();
                 $table->timestamp('created_at')->useCurrent();
             });
-            echo "Table 'migrations' créée avec succès.\n";
+            echo "\033[32m📂 Table 'migrations' créée avec succès.\033[0m\n";
         }
     }
 }
