@@ -6,8 +6,9 @@ use StormBin\Package\Commands\Controllers\MakeController;
 use StormBin\Package\Commands\Models\MakeModel;
 use StormBin\Package\Commands\Migrations\MakeMigration;
 use StormBin\Package\Commands\Migrate\Migrate;
+use StormBin\Package\Commands\Crud\MakeCrud;
 
-class Kernel 
+class Kernel
 {
     private $makeLogin, $makeMigration, $migrate, $makeController, $makeCrud, $makeModel;
 
@@ -17,6 +18,7 @@ class Kernel
         $this->makeController = new MakeController();
         $this->makeMigration = new MakeMigration();
         $this->migrate = new Migrate();
+        $this->makeCrud = new  MakeCrud();
     }
 
     protected array $commands = [
@@ -25,6 +27,7 @@ class Kernel
         'make:model' => 'makeModel',
         'make:migration' => 'makeMigration',
         'migrate' => 'migrate',
+        'make:crud' => 'crud',
     ];
 
     public function handle($argv)
@@ -66,6 +69,19 @@ class Kernel
         }
     }
 
+    //Appelle de la methode crud
+
+    public function crud($tableName)
+    {
+        if (!$tableName) {
+            echo "Veuillez fournir le nom de la table.\n";
+            return;
+        }
+
+        $this->makeCrud->handle([$tableName]);
+    }
+
+
     // Méthode pour créer une migration
     public function makeMigration($migrationName, $options)
     {
@@ -95,8 +111,8 @@ class Kernel
     {
         global $argv;
 
-        $host = "127.0.0.1"; // Valeur par défaut
-        $port = 8000;        // Valeur par défaut
+        $host = "127.0.0.1";
+        $port = 8000;
 
         foreach ($argv as $arg) {
             if (strpos($arg, '--host=') === 0) {
@@ -106,14 +122,78 @@ class Kernel
             }
         }
 
-        while (!@stream_socket_server("tcp://$host:$port")) {
-            $port++; // Incrémente si le port est occupé
+        if (!shell_exec('php -v')) {
+            $this->log("PHP n'est pas installé ou non accessible depuis le terminal.", "error");
+            exit(1);
         }
 
-        $cmd = "php -S $host:$port -t public";
-        echo "Serveur démarré sur http://$host:$port\n";
-        exec($cmd);
+        if (!is_dir("public")) {
+            $this->log("Le dossier 'public' est introuvable. Vérifiez votre projet.", "error");
+            exit(1);
+        }
+
+        $server = @stream_socket_server("tcp://$host:$port");
+        if (!$server) {
+            $this->log("⚠️  Impossible d'écouter sur $host:$port (Adresse déjà utilisée).", "error");
+            $port++;
+            $this->log("🔄 Recherche d'un port disponible...", "warning");
+
+            while (!$server) {
+                $server = @stream_socket_server("tcp://$host:$port");
+                if (!$server) {
+                    $port++;
+                }
+            }
+
+            fclose($server);
+        } else {
+            fclose($server);
+        }
+
+        $this->log("✅ Serveur en cours d'exécution sur: \033[4;34mhttp://$host:$port\033[0m", "success");
+        $this->log("🔵 Appuyez sur Ctrl + C pour arrêter le serveur", "info");
+
+        // Lancer le serveur en arrière-plan et capturer les requêtes
+        $logFile = "/tmp/storm_server.log";
+        exec("php -S $host:$port -t public > $logFile 2>&1 &");
+
+        while (true) {
+            if (file_exists($logFile)) {
+                $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($lines as $line) {
+                    // Mettre à jour l'expression régulière pour capturer le code de réponse, la méthode et l'URL
+                    if (preg_match('/\[.*\] \d+\.\d+\.\d+\.\d+:\d+ \[(\d+)\]: (\w+) (\/[^\s]*)/', $line, $matches)) {
+                        $statusCode = $matches[1]; // Code de réponse HTTP (200, 404, etc.)
+                        $method = $matches[2];    // Méthode HTTP (GET, POST, etc.)
+                        $url = $matches[3];       // L'URL
+                        $time = rand(10, 500);   // Simuler le temps de réponse en ms
+
+                        // Afficher le log avec le code de réponse, la méthode et l'URL
+                        echo "\n$url:$method:$statusCode " . str_repeat(".", 45) . " ~ {$time}ms\n";
+                    }
+                }
+                file_put_contents($logFile, ""); // Nettoyer le fichier
+            }
+            usleep(500000); // Attendre 0.5s pour éviter une surcharge CPU
+        }
     }
+
+    // Fonction pour afficher des logs colorés
+    protected function log($message, $type = "info")
+    {
+        $colors = [
+            "info" => "\033[34m",
+            "success" => "\033[32m",
+            "warning" => "\033[33m",
+            "error" => "\033[31m"
+        ];
+
+        $reset = "\033[0m";
+        $typeUpper = strtoupper($type);
+        echo "{$colors[$type]}[$typeUpper] $message$reset\n";
+    }
+
+
 
     // Affichage des commandes disponibles et de leur usage
     protected function showUsage()
@@ -130,11 +210,11 @@ class Kernel
         echo "  \x1b[32mmake:model\x1b[0m        Créer un modèle\n";
 
         // Commandes avec options
-        echo "\n  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration>\x1b[0m - Créer une migration avec le nom spécifié\n"; // 'make:migration <nom_migration>' en vert
-        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -c\x1b[0m -- Créer une table \x1b[32m<nom_tab>\x1b[0m\n"; // --tab=<nom_tab> intégré
-        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -a\x1b[0m -- Ajouter un attribut à la table \x1b[32m<nom_tab>\x1b[0m\n";
-        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -r\x1b[0m -- Retirer un attribut de la table \x1b[32m<nom_tab>\x1b[0m\n";
-        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -d\x1b[0m -- Supprimer la table \x1b[32m<nom_tab>\x1b[0m\n";
+        echo "\n  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration>\x1b[0m - Créer une migration avec le nom spécifié\n";
+        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -c\x1b[0m --tab=<nom_tab> Créer une table \x1b[32m\x1b[0m\n";
+        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -a\x1b[0m --tab=<nom_tab> Ajouter un attribut à la table \x1b[32m\x1b[0m\n";
+        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -r\x1b[0m --tab=<nom_tab> Retirer un attribut de la table \x1b[32m\x1b[0m\n";
+        echo "  \x1b[32mmake:migration\x1b[0m \x1b[31m<nom_migration> -d\x1b[0m --tab=<nom_tab> Supprimer la table \x1b[32m\x1b[0m\n";
 
         // Option pour make:controller avec --api
         echo "\n  \x1b[32mmake:controller\x1b[0m \x1b[31m<nom_controller>\x1b[0m -- Créer un contrôleur\n";

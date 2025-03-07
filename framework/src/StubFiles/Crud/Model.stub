@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class {{model}} extends Model
+{
+    use HasFactory;
+
+    // Définir le nom de la table
+    protected $table = '{{table}}'; // Nom de la table
+
+    // Définir la clé primaire
+    protected $primaryKey = '{{primaryKey}}'; // Clé primaire de la table
+
+    // Champs remplissables
+    protected $fillable = [
+        {{#each fillable}}
+        '{{this}}',
+        {{/each}}
+    ];
+
+    // Champs protégés
+    protected $guarded = [];
+
+    // Pour les timestamps
+    public $timestamps = {{timestamps}}; // Active created_at et updated_at si nécessaire
+
+    // Gestion des clés étrangères
+    {{#each foreignKeys}}
+    public function {{this.foreignModel}}(){
+        return $this->belongsTo('{{this.foreignModel}}', '{{this.foreignKey}}');
+    }
+    {{/each}}
+}

@@ -1,0 +1,15 @@
+@extends('layouts.app')
+
+@section('content')
+    <h1>Create {{ ucfirst($table) }}</h1>
+    <form action="{{ route('{{ table }}.store') }}" method="POST">
+        @csrf
+        @foreach($columns as $column)
+            <div class="form-group">
+                <label for="{{ column }}">{{ ucfirst($column) }}</label>
+                <input type="text" name="{{ column }}" id="{{ column }}" class="form-control">
+            </div>
+        @endforeach
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+@endsection

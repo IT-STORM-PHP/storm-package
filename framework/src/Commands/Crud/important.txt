@@ -1,0 +1,106 @@
+<?php
+
+namespace StormBin\Package\Commands\Crud;
+
+use StormBin\Package\Database\Database;
+use Illuminate\Database\Capsule\Manager as Capsule;
+
+class MakeCrud
+{
+    public function handle($args)
+    {
+        // Initialiser la base de données
+        Database::init();
+
+        if (empty($args)) {
+            echo "Veuillez fournir le nom de la table.\n";
+            return;
+        }
+
+        // Supprimer les espaces supplémentaires et forcer la casse en minuscule
+        $tableName = trim(strtolower($args[0]));
+
+        // Vérifier si la table existe
+        if (!$this->tableExists($tableName)) {
+            echo "La table '$tableName' n'existe pas.\n";
+            return;
+        }
+
+        // Lire la structure de la table
+        $this->printTableStructure($tableName);
+    }
+
+    private function tableExists($tableName)
+    {
+        return Capsule::schema()->hasTable($tableName);
+    }
+
+    private function printTableStructure($tableName)
+    {
+        echo "Structure de la table '$tableName' :\n";
+
+        $columns = Capsule::schema()->getColumnListing($tableName);
+        
+        // Pour chaque colonne, récupérer les détails
+        foreach ($columns as $column) {
+            $columnDetails = $this->getColumnDetails($tableName, $column);
+            $type = $columnDetails['type'];
+            echo "Colonne : $column - Type : $type\n";
+        }
+    }
+
+    private function getColumnDetails($tableName, $column)
+    {
+        // Obtenir la connexion à la base de données
+        $connection = Capsule::connection();
+
+        // Détecter la base de données utilisée
+        $databaseType = $connection->getDriverName();
+
+        try {
+            if ($databaseType === 'sqlite') {
+                // Pour SQLite : utiliser PRAGMA table_info
+                $query = "PRAGMA table_info($tableName)";
+                $result = $connection->select($query);
+
+                foreach ($result as $row) {
+                    if ($row->name === $column) {
+                        return [
+                            'type' => $row->type, // Retourner le type de la colonne
+                        ];
+                    }
+                }
+            } elseif ($databaseType === 'mysql') {
+                // Pour MySQL : utiliser DESCRIBE
+                $query = "DESCRIBE $tableName";
+                $result = $connection->select($query);
+
+                foreach ($result as $row) {
+                    if ($row->Field === $column) {
+                        return [
+                            'type' => $row->Type, // Retourner le type de la colonne
+                        ];
+                    }
+                }
+            } elseif ($databaseType === 'pgsql') {
+                // Pour PostgreSQL : utiliser information_schema.columns
+                $query = "SELECT data_type FROM information_schema.columns WHERE table_name = ? AND column_name = ?";
+                $result = $connection->select($query, [$tableName, $column]);
+
+                if (!empty($result)) {
+                    return [
+                        'type' => $result[0]->data_type, // Retourner le type de la colonne
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            return [
+                'type' => 'unknown', // En cas d'erreur, retourner 'unknown'
+            ];
+        }
+
+        return [
+            'type' => 'unknown', // Retourner 'unknown' si la colonne n'a pas été trouvée
+        ];
+    }
+}

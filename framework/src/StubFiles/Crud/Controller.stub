@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\{{ model }};
+use Illuminate\Http\Request;
+
+class {{ model }}Controller extends Controller
+{
+    public function index()
+    {
+        ${{ table }} = {{ model }}::all();
+        return view('{{ table }}.index', compact('{{ table }}'));
+    }
+
+    public function create()
+    {
+        return view('{{ table }}.create');
+    }
+
+    public function store(Request $request)
+    {
+        {{ model }}::create($request->all());
+        return redirect()->route('{{ table }}.index');
+    }
+
+    public function show({{ model }} ${{ table }})
+    {
+        return view('{{ table }}.show', compact('{{ table }}'));
+    }
+
+    public function edit({{ model }} ${{ table }})
+    {
+        return view('{{ table }}.edit', compact('{{ table }}'));
+    }
+
+    public function update(Request $request, {{ model }} ${{ table }})
+    {
+        ${{ table }}->update($request->all());
+        return redirect()->route('{{ table }}.index');
+    }
+
+    public function destroy({{ model }} ${{ table }})
+    {
+        ${{ table }}->delete();
+        return redirect()->route('{{ table }}.index');
+    }
+}

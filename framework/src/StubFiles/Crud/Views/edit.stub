@@ -1,0 +1,16 @@
+@extends('layouts.app')
+
+@section('content')
+    <h1>Edit {{ ucfirst($table) }}</h1>
+    <form action="{{ route('{{ table }}.update', ${{ table }}) }}" method="POST">
+        @csrf
+        @method('PUT')
+        @foreach($columns as $column)
+            <div class="form-group">
+                <label for="{{ column }}">{{ ucfirst($column) }}</label>
+                <input type="text" name="{{ column }}" id="{{ column }}" class="form-control" value="{{ ${{ table }}->{{ column }} }}">
+            </div>
+        @endforeach
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+@endsection

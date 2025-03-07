@@ -1,0 +1,11 @@
+@extends('layouts.app')
+
+@section('content')
+    <h1>{{ ucfirst($table) }} Details</h1>
+    <div>
+        @foreach($columns as $column)
+            <p><strong>{{ ucfirst($column) }}:</strong> {{ ${{ table }}->{{ column }} }}</p>
+        @endforeach
+    </div>
+    <a href="{{ route('{{ table }}.index') }}" class="btn btn-secondary">Back</a>
+@endsection

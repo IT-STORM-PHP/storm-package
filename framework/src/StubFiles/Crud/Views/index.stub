@@ -1,0 +1,34 @@
+@extends('layouts.app')
+
+@section('content')
+    <h1>{{ ucfirst($table) }}</h1>
+    <a href="{{ route('{{ table }}.create') }}" class="btn btn-primary">Create</a>
+    <table class="table">
+        <thead>
+            <tr>
+                @foreach($columns as $column)
+                    <th>{{ ucfirst($column) }}</th>
+                @endforeach
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(${{ table }} as $item)
+                <tr>
+                    @foreach($columns as $column)
+                        <td>{{ $item->{{ column }} }}</td>
+                    @endforeach
+                    <td>
+                        <a href="{{ route('{{ table }}.show', $item) }}" class="btn btn-info">View</a>
+                        <a href="{{ route('{{ table }}.edit', $item) }}" class="btn btn-warning">Edit</a>
+                        <form action="{{ route('{{ table }}.destroy', $item) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+@endsection
