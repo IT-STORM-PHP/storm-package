@@ -122,13 +122,26 @@ class Route {
                 }
             }
         }
-
-        return self::execute($action, $params);
+    
+        // Convertir les paramètres en tableau associatif
+        $paramNames = [];
+        preg_match_all('#\{(\w+)\}#', $route, $paramNames);
+        $paramNames = $paramNames[1]; // Récupérer les noms des paramètres
+    
+        $associativeParams = [];
+        foreach ($paramNames as $index => $name) {
+            $associativeParams[$name] = $params[$index] ?? null;
+        }
+    
+        return self::execute($action, $associativeParams);
     }
 
     private static function execute($action, $params) {
         if (is_callable($action)) {
-            echo call_user_func_array($action, $params);
+            // Utiliser la réflexion pour analyser la fonction de rappel
+            $reflection = new \ReflectionFunction($action);
+            $args = self::resolveParameters($reflection, $params);
+            echo call_user_func_array($action, $args);
         } elseif (is_array($action) && count($action) === 2) {
             [$controller, $method] = $action;
             if (!class_exists($controller)) {
@@ -136,20 +149,49 @@ class Route {
                 echo "500 - Erreur interne: Contrôleur '$controller' introuvable.";
                 exit();
             }
-
+    
             $controllerInstance = new $controller();
             if (!method_exists($controllerInstance, $method)) {
                 http_response_code(500);
                 echo "500 - Erreur interne: Méthode '$method' non trouvée dans '$controller'.";
                 exit();
             }
-
-            echo call_user_func_array([$controllerInstance, $method], $params);
+    
+            // Utiliser la réflexion pour analyser la méthode du contrôleur
+            $reflection = new \ReflectionMethod($controllerInstance, $method);
+            $args = self::resolveParameters($reflection, $params);
+            echo call_user_func_array([$controllerInstance, $method], $args);
         } else {
             http_response_code(500);
             echo "500 - Erreur interne: Action non valide.";
             exit();
         }
+    }
+    
+    /**
+     * Résoudre les paramètres pour une fonction ou une méthode.
+     *
+     * @param \ReflectionFunctionAbstract $reflection La réflexion de la fonction ou méthode
+     * @param array $params Les paramètres de la route
+     * @return array Les arguments résolus
+     */
+    private static function resolveParameters(\ReflectionFunctionAbstract $reflection, array $params): array {
+        $args = [];
+    
+        foreach ($reflection->getParameters() as $param) {
+            $paramName = $param->getName();
+            $paramType = $param->getType();
+    
+            // Si le paramètre est de type Request, injecter une instance de Request
+            if ($paramType && $paramType->getName() === 'StormBin\Package\Request\Request') {
+                $args[] = new \StormBin\Package\Request\Request();
+            } else {
+                // Sinon, injecter les paramètres de la route par nom
+                $args[] = $params[$paramName] ?? null;
+            }
+        }
+    
+        return $args;
     }
 
     // Méthode pour récupérer une route nommée
