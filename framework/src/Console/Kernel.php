@@ -64,6 +64,8 @@ class Kernel
             $this->$method($argument, $options);
         } elseif ($command === 'make:controller') {
             $this->$method($argument, $isApi);
+        } elseif($command === 'make:crud') {
+            $this->$method($argument, $isApi);
         } else {
             $this->$method($argument);
         }
@@ -71,15 +73,18 @@ class Kernel
 
     //Appelle de la methode crud
 
-    public function crud($tableName)
-    {
-        if (!$tableName) {
-            echo "Veuillez fournir le nom de la table.\n";
-            return;
-        }
-
-        $this->makeCrud->handle([$tableName]);
+    public function crud($tableName, $isApi = false)
+{
+    if (!$tableName) {
+        echo "Veuillez fournir le nom de la table.\n";
+        return;
     }
+
+    echo "Génération du CRUD pour la table : $tableName\n";
+    echo "Mode : " . ($isApi ? "API" : "Web") . "\n";
+
+    $this->makeCrud->handle([$tableName, $isApi]);
+}
 
 
     // Méthode pour créer une migration
@@ -102,9 +107,12 @@ class Kernel
 
     // Méthode pour créer un contrôleur
     public function makeController($controllerName, $isApi = false)
-    {
-        $this->makeController->makeController($controllerName, $isApi);
-    }
+{
+    echo "Génération du contrôleur : $controllerName\n";
+    echo "Mode : " . ($isApi ? "API" : "Web") . "\n";
+
+    $this->makeController->makeController($controllerName, $isApi);
+}
 
     // Méthode pour démarrer le serveur
     protected function serve()

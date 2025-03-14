@@ -7,12 +7,14 @@ class ControllerGenerator
     protected $modelName;
     protected $controllerName;
     protected $foreignKeys;
+    protected $isApi;
 
-    public function __construct($modelName, $foreignKeys = [])
+    public function __construct($modelName, $foreignKeys = [], $isApi = false)
     {
         $this->modelName = $modelName;
         $this->controllerName = $modelName . 'Controller';
         $this->foreignKeys = $foreignKeys;
+        $this->isApi = $isApi;
     }
 
     public function generateController()
@@ -38,116 +40,30 @@ class ControllerGenerator
     // Générer les relations à charger avec with()
     $withRelations = $this->generateWithRelations();
 
-    $code = <<<PHP
-<?php
+    // Charger le fichier stub approprié
+    $stubFile = $this->isApi ? 'ControllerApi.stub' : 'ControllerWeb.stub';
+    $stubPath = dirname(__DIR__, 3) . "/StubFiles/Crud/Controllers/{$stubFile}";
 
-namespace App\Web\Controllers;
-
-use StormBin\Package\Controllers\Controller;
-use StormBin\Package\Views\Views;
-use App\Models\\$modelName;
-use StormBin\Package\Request\Request;
-use Illuminate\Validation\ValidationException;
-$imports
-
-class $controllerName extends Controller
-{
-    /**
-     * Afficher la liste des ressources.
-     */
-    public function index()
-    {
-        \$items = $modelName::with([$withRelations])->get();
-        Views::jsonResponse(\$items->toArray());
+    if (!file_exists($stubPath)) {
+        throw new \Exception("Stub file not found: {$stubPath}");
     }
 
-    /**
-     * Afficher le formulaire de création d'une nouvelle ressource.
-     */
-    public function create()
-    {
-        Views::jsonResponse(['message' => 'Formulaire de création']);
-    }
+    $stubContent = file_get_contents($stubPath);
 
-    /**
-     * Stocker une nouvelle ressource dans la base de données.
-     */
-    public function store(Request \$request)
-    {
-        try {
-            // Valider les données de la requête
-            \$validatedData = \$request->validate($modelName::getRules(), $modelName::getMessages());
+    // Remplacer les placeholders dans le stub
+    $replacements = [
+        '%modelName%' => $modelName,
+        '%controllerName%' => $controllerName,
+        '%imports%' => $imports,
+        '%withRelations%' => $withRelations,
+        '%modelNameLower%' => strtolower($modelName),
+    ];
 
-            // Créer une nouvelle entité avec les données validées
-            \$item = $modelName::create(\$validatedData);
+    $stubContent = str_replace(array_keys($replacements), array_values($replacements), $stubContent);
 
-            // Retourner une réponse JSON
-            Views::jsonResponse(['message' => 'Création réussie', 'data' => \$item], 201);
-        } catch (ValidationException \$e) {
-            // Retourner les erreurs de validation
-            Views::jsonResponse(['errors' => \$e->errors()], 422);
-        }
-    }
-
-    /**
-     * Afficher une ressource spécifique.
-     */
-    public function show(\$id)
-    {
-        \$item = $modelName::with([$withRelations])->findOrFail(\$id);
-        Views::jsonResponse(\$item->toArray());
-    }
-
-    /**
-     * Afficher le formulaire de modification d'une ressource.
-     */
-    public function edit(\$id)
-    {
-        \$item = $modelName::with([$withRelations])->findOrFail(\$id);
-        Views::jsonResponse(['message' => 'Formulaire de modification', 'data' => \$item->toArray()]);
-    }
-
-    /**
-     * Mettre à jour une ressource dans la base de données.
-     */
-    public function update(Request \$request, \$id)
-    {
-        try {
-            // Valider les données de la requête
-            \$validatedData = \$request->validate($modelName::getRules(), $modelName::getMessages());
-
-            // Trouver l'entité à mettre à jour
-            \$item = $modelName::findOrFail(\$id);
-
-            // Mettre à jour l'entité avec les données validées
-            \$item->update(\$validatedData);
-
-            // Retourner une réponse JSON
-            Views::jsonResponse(['message' => 'Mise à jour réussie', 'data' => \$item->toArray()]);
-        } catch (ValidationException \$e) {
-            // Retourner les erreurs de validation
-            Views::jsonResponse(['errors' => \$e->errors()], 422);
-        }
-    }
-
-    /**
-     * Supprimer une ressource de la base de données.
-     */
-    public function destroy(\$id)
-    {
-        \$item = $modelName::findOrFail(\$id);
-        \$item->delete();
-        Views::jsonResponse(['message' => 'Suppression réussie']);
-    }
-}
-PHP;
-
-    return $code;
+    return $stubContent;
 }
 
-    /**
-     * Générer les relations à charger avec with().
-     */
     private function generateWithRelations()
     {
         $relations = [];
@@ -160,20 +76,23 @@ PHP;
     }
 
     private function saveControllerFile($controllerCode)
-    {
-        $controllerPath = getcwd() . "/app/web/Controllers/{$this->controllerName}.php";
+{
+    $basePath = getcwd() . "/app/";
+    $controllerPath = $this->isApi
+        ? $basePath . "api/Controllers/{$this->controllerName}.php"
+        : $basePath . "web/Controllers/{$this->controllerName}.php";
 
-        // Créer le dossier Controllers s'il n'existe pas
-        if (!is_dir(dirname($controllerPath))) {
-            mkdir(dirname($controllerPath), 0755, true);
-        }
-
-        // Sauvegarder le contrôleur
-        if (!file_exists($controllerPath)) {
-            file_put_contents($controllerPath, $controllerCode);
-            echo "Contrôleur {$this->controllerName} créé avec succès.\n";
-        } else {
-            echo "Le contrôleur {$this->controllerName} existe déjà.\n";
-        }
+    // Créer le dossier Controllers s'il n'existe pas
+    if (!is_dir(dirname($controllerPath))) {
+        mkdir(dirname($controllerPath), 0755, true);
     }
+
+    // Sauvegarder le contrôleur
+    if (!file_exists($controllerPath)) {
+        file_put_contents($controllerPath, $controllerCode);
+        echo "Contrôleur {$this->controllerName} créé avec succès dans " . ($this->isApi ? "api" : "web") . ".\n";
+    } else {
+        echo "Le contrôleur {$this->controllerName} existe déjà.\n";
+    }
+}
 }

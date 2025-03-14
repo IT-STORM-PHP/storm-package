@@ -1,0 +1,10 @@
+use App\Web\Controllers\%modelName%Controller;
+
+// Routes pour %modelName%
+Route::get('/%routeName%', [%modelName%Controller::class, 'index']);
+Route::get('/%routeName%/create', [%modelName%Controller::class, 'create']);
+Route::post('/%routeName%/store', [%modelName%Controller::class, 'store']);
+Route::get('/%routeName%/{id}', [%modelName%Controller::class, 'show']);
+Route::get('/%routeName%/edit/{id}', [%modelName%Controller::class, 'edit']);
+Route::post('/%routeName%/update/{id}', [%modelName%Controller::class, 'update']);
+Route::post('/%routeName%/del/{id}', [%modelName%Controller::class, 'destroy']);

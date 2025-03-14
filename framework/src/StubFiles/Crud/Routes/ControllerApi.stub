@@ -1,0 +1,8 @@
+use App\Api\Controllers\%modelName%Controller;
+
+// Routes API pour %modelName%
+Route::get('/api/%routeName%', [%modelName%Controller::class, 'index']);
+Route::post('/api/%routeName%', [%modelName%Controller::class, 'store']);
+Route::get('/api/%routeName%/{id}', [%modelName%Controller::class, 'show']);
+Route::put('/api/%routeName%/{id}', [%modelName%Controller::class, 'update']);
+Route::delete('/api/%routeName%/{id}', [%modelName%Controller::class, 'destroy']);

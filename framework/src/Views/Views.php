@@ -10,6 +10,12 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Engines\CompilerEngine;
 use Illuminate\View\Engines\PhpEngine;
 use Illuminate\View\Compilers\BladeCompiler;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class Views
 {
@@ -49,6 +55,46 @@ class Views
     }
 
     /**
+     * Redirige vers une URL.
+     */
+    public static function redirect(string $url = null, int $status = 302, array $headers = []): RedirectResponse
+    {
+        return Redirect::to($url, $status, $headers);
+    }
+
+    /**
+     * Redirige vers la page précédente.
+     */
+    public static function back(int $status = 302, array $headers = []): RedirectResponse
+    {
+        return Redirect::back($status, $headers);
+    }
+
+    /**
+     * Définit un message flash en session.
+     */
+    public static function with(string $key, string $message): void
+    {
+        Session::flash($key, $message);
+    }
+
+    /**
+     * Définit des messages d'erreur en session.
+     */
+    public static function withErrors(array $errors): RedirectResponse
+    {
+        return Redirect::back()->withErrors($errors);
+    }
+
+    /**
+     * Conserve les données soumises en session.
+     */
+    public static function withInput(): RedirectResponse
+    {
+        return Redirect::back()->withInput();
+    }
+
+    /**
      * Render une vue dynamique avec les données données.
      */
     public static function render($view, $data = [])
@@ -74,55 +120,48 @@ class Views
         return self::init()->make($template, $data)->render();
     }
 
-    /**
-     * Redirige vers une URL.
-     */
-    public static function redirect(string $url): void
-    {
-        header("Location: " . filter_var($url, FILTER_SANITIZE_URL));
-        exit();
+   /**
+ * Retourne une réponse JSON.
+ *
+ * @param mixed $data Les données à retourner.
+ * @param int $status Le code de statut HTTP (par défaut 200).
+ * @param array $headers Les en-têtes HTTP personnalisés (optionnel).
+ * @param int $options Les options JSON (par défaut JSON_PRETTY_PRINT).
+ * @return string|JsonResponse
+ */
+public static function jsonResponse($data, int $status = 200, array $headers = [], int $options = JSON_PRETTY_PRINT)
+{
+    // En-têtes par défaut
+    $defaultHeaders = [
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'no-cache, private',
+    ];
+
+    // Fusionner les en-têtes personnalisés avec les en-têtes par défaut
+    $finalHeaders = array_merge($defaultHeaders, $headers);
+
+    // Si l'utilisateur ne veut pas d'en-têtes HTTP, retourner uniquement les données JSON
+    if (empty($headers)) {
+        return json_encode($data, $options);
     }
 
-    /**
-     * Retourne une réponse JSON.
-     */
-    public static function jsonResponse(array $data, int $status = 200): void
-    {
-        header("Content-Type: application/json; charset=UTF-8");
-        http_response_code($status);
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        exit();
-    }
-
-    /**
-     * Définit un message flash en session.
-     */
-    public static function setFlash(string $key, string $message): void
-    {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        $_SESSION['flash'][$key] = $message;
-    }
-
+    // Sinon, retourner une réponse JSON avec les en-têtes
+    return new JsonResponse($data, $status, $finalHeaders, $options);
+}
     /**
      * Récupère un message flash et le supprime.
      */
     public static function getFlash(string $key): ?string
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!empty($_SESSION['flash'][$key])) {
-            $message = $_SESSION['flash'][$key];
-            unset($_SESSION['flash'][$key]);
-            return $message;
-        }
-        return null;
+        return Session::get($key);
     }
 
     /**
      * Définit un cookie sécurisé.
      */
-    public static function setCookie(string $name, string $value, int $expire = 3600, string $path = "/", bool $secure = false, bool $httponly = true): void
+    public static function cookie(string $name, string $value, int $minutes = 0, string $path = "/", string $domain = null, bool $secure = false, bool $httpOnly = true)
     {
-        setcookie($name, $value, time() + $expire, $path, "", $secure, $httponly);
+        return Cookie::make($name, $value, $minutes, $path, $domain, $secure, $httpOnly);
     }
 
     /**
@@ -130,37 +169,23 @@ class Views
      */
     public static function getCookie(string $name): ?string
     {
-        return $_COOKIE[$name] ?? null;
+        return Cookie::get($name);
     }
 
     /**
      * Génère une page d'erreur HTTP.
      */
-    public static function renderErrorPage(int $code = 404, string $message = "Page not found"): void
+    public static function abort(int $code = 404, string $message = "Page not found")
     {
-        http_response_code($code);
-        include __DIR__ . "/errors/{$code}.php";
-        exit();
+        return Response::abort($code, $message);
     }
 
     /**
      * Génère un fichier pour téléchargement.
      */
-    public static function downloadFile(string $filePath, ?string $fileName = null): void
+    public static function download(string $filePath, ?string $fileName = null, array $headers = [])
     {
-        if (!file_exists($filePath)) {
-            self::renderErrorPage(404, "Fichier non trouvé");
-        }
-        $fileName = $fileName ?: basename($filePath);
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . basename($fileName) . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($filePath));
-        readfile($filePath);
-        exit();
+        return Response::download($filePath, $fileName, $headers);
     }
 
     /**
@@ -180,5 +205,29 @@ class Views
                 'total_items' => $total
             ]
         ];
+    }
+
+    /**
+     * Retourne une réponse HTTP.
+     */
+    public static function response($content = '', int $status = 200, array $headers = [])
+    {
+        return Response::make($content, $status, $headers);
+    }
+
+    /**
+     * Retourne une réponse de redirection.
+     */
+    public static function redirectResponse(string $url, int $status = 302, array $headers = [])
+    {
+        return Redirect::to($url, $status, $headers);
+    }
+
+    /**
+     * Retourne une réponse de vue.
+     */
+    public static function viewResponse(string $view, array $data = [], int $status = 200, array $headers = [])
+    {
+        return Response::view($view, $data, $status, $headers);
     }
 }
