@@ -6,9 +6,9 @@ use StormBin\Package\Controllers\Controller;
 use StormBin\Package\Views\Views;
 use App\Models\%modelName%;
 use StormBin\Package\Request\Request;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException; // Si tu utilises une validation similaire à Laravel
+use Illuminate\Database\Eloquent\ModelNotFoundException; // Si tu utilises des exceptions similaires
+use Illuminate\Support\Facades\Log; // Si tu utilises un système de logging similaire
 
 %imports%
 
@@ -24,7 +24,7 @@ class %controllerName% extends Controller
             return Views::render('%modelName%.index', ['items' => $items]);
         } catch (\Exception $e) {
             Log::error('Erreur lors de la récupération des ressources : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
     }
 
@@ -48,14 +48,14 @@ class %controllerName% extends Controller
             // Créer une nouvelle entité avec les données validées
             $item = %modelName%::create($validatedData);
 
-            // Rediriger vers la liste des ressources avec un message de succès
-            return Views::redirect(route('%modelName%.index'))->with('success', 'Création réussie');
+            // Rediriger vers la liste des ressources
+            return Views::redirect(route('%modelName%.index'));
         } catch (ValidationException $e) {
-            // Rediriger avec les erreurs de validation
-            return Views::redirect()->back()->withErrors($e->errors())->withInput();
+            // Rediriger vers le formulaire de création avec les erreurs de validation
+            return Views::redirect(route('%modelName%.create'));
         } catch (\Exception $e) {
             Log::error('Erreur lors de la création de la ressource : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
     }
 
@@ -68,10 +68,10 @@ class %controllerName% extends Controller
             $item = %modelName%::with([%withRelations%])->findOrFail($id);
             return Views::render('%modelName%.show', ['item' => $item]);
         } catch (ModelNotFoundException $e) {
-            return Views::redirect()->back()->with('error', 'Ressource non trouvée');
+            return Views::redirect(route('%modelName%.error'));
         } catch (\Exception $e) {
             Log::error('Erreur lors de la récupération de la ressource : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
     }
 
@@ -84,10 +84,10 @@ class %controllerName% extends Controller
             $item = %modelName%::with([%withRelations%])->findOrFail($id);
             return Views::render('%modelName%.edit', ['item' => $item]);
         } catch (ModelNotFoundException $e) {
-            return Views::redirect()->back()->with('error', 'Ressource non trouvée');
+            return Views::redirect(route('%modelName%.error'));
         } catch (\Exception $e) {
             Log::error('Erreur lors de la récupération de la ressource : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
     }
 
@@ -106,16 +106,16 @@ class %controllerName% extends Controller
             // Mettre à jour l'entité avec les données validées
             $item->update($validatedData);
 
-            // Rediriger vers la liste des ressources avec un message de succès
-            return Views::redirect(route('%modelName%.index'))->with('success', 'Mise à jour réussie');
+            // Rediriger vers la liste des ressources
+            return Views::redirect(route('%modelName%.index'));
         } catch (ValidationException $e) {
-            // Rediriger avec les erreurs de validation
-            return Views::redirect()->back()->withErrors($e->errors())->withInput();
+            // Rediriger vers le formulaire de modification
+            return Views::redirect(route('%modelName%.edit', $id));
         } catch (ModelNotFoundException $e) {
-            return Views::redirect()->back()->with('error', 'Ressource non trouvée');
+            return Views::redirect(route('%modelName%.error'));
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise à jour de la ressource : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
     }
 
@@ -127,12 +127,20 @@ class %controllerName% extends Controller
         try {
             $item = %modelName%::findOrFail($id);
             $item->delete();
-            return Views::redirect(route('%modelName%.index'))->with('success', 'Suppression réussie');
+            return Views::redirect(route('%modelName%.index'));
         } catch (ModelNotFoundException $e) {
-            return Views::redirect()->back()->with('error', 'Ressource non trouvée');
+            return Views::redirect(route('%modelName%.error'));
         } catch (\Exception $e) {
             Log::error('Erreur lors de la suppression de la ressource : ' . $e->getMessage());
-            return Views::redirect()->back()->with('error', 'Une erreur est survenue');
+            return Views::redirect(route('%modelName%.error'));
         }
+    }
+
+    /**
+     * Afficher la page d'erreur.
+     */
+    public function error()
+    {
+        return Views::render('%modelName%.error');
     }
 }

@@ -4,18 +4,22 @@ namespace StormBin\Package\Commands\Crud;
 
 use StormBin\Package\Database\Database;
 use StormBin\Package\Commands\Crud\Services\ModelGenerator;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use StormBin\Package\Commands\Crud\Services\ForeignKeyHandler;
 use StormBin\Package\Commands\Crud\Services\ControllerGenerator;
 use StormBin\Package\Commands\Crud\Services\AddRoute;
+use StormBin\Package\Commands\Crud\Services\ViewGenerator;
 class MakeCrud
 {
     protected $modelGenerator;
     protected $foreignKeyHandler;
+    
 
     public function __construct()
     {
         $this->modelGenerator = new ModelGenerator();
         $this->foreignKeyHandler = new ForeignKeyHandler();
+
     }
 
     public function handle($args)
@@ -45,6 +49,16 @@ class MakeCrud
 
     // Générer le contrôleur CRUD pour le modèle
     $this->createController($tableName, $isApi);
+
+    // Générer les vues CRUD (sauf si c'est une API)
+    if (!$isApi) {
+        $columns = Capsule::schema()->getColumnListing($tableName);
+        $foreignKeys = $this->foreignKeyHandler->getForeignKeys($tableName);
+
+        // Instancier et appeler le ViewGenerator
+        $viewGenerator = new ViewGenerator($tableName, $columns, $foreignKeys);
+        $viewGenerator->generateViews();
+    }
 }
 
     private function createModel($tableName)

@@ -7,10 +7,10 @@ use StormBin\Package\Commands\Models\MakeModel;
 use StormBin\Package\Commands\Migrations\MakeMigration;
 use StormBin\Package\Commands\Migrate\Migrate;
 use StormBin\Package\Commands\Crud\MakeCrud;
-
+use StormBin\Package\Commands\Debug\DebugRoute;
 class Kernel
 {
-    private $makeLogin, $makeMigration, $migrate, $makeController, $makeCrud, $makeModel;
+    private $makeLogin, $makeMigration, $migrate, $makeController, $makeCrud, $makeModel, $debugRoute;
 
     public function __construct()
     {
@@ -19,6 +19,7 @@ class Kernel
         $this->makeMigration = new MakeMigration();
         $this->migrate = new Migrate();
         $this->makeCrud = new  MakeCrud();
+        $this->debugRoute = new DebugRoute();
     }
 
     protected array $commands = [
@@ -28,6 +29,7 @@ class Kernel
         'make:migration' => 'makeMigration',
         'migrate' => 'migrate',
         'make:crud' => 'crud',
+        'debug:route' => 'debugRoute',
     ];
 
     public function handle($argv)
@@ -69,6 +71,10 @@ class Kernel
         } else {
             $this->$method($argument);
         }
+    }
+
+    public function debugRoute(){
+            $this->debugRoute->handle();
     }
 
     //Appelle de la methode crud

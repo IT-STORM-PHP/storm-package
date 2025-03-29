@@ -1,34 +1,40 @@
-@extends('layouts.app')
+@extends('base.base')
+
+@section('titre', 'Liste des {{ ucfirst($tableName) }}')
 
 @section('content')
-    <h1>{{ ucfirst($table) }}</h1>
-    <a href="{{ route('{{ table }}.create') }}" class="btn btn-primary">Create</a>
+<div class="container">
+    <h1>Liste des {{ ucfirst($tableName) }}</h1>
+    <a href="{{ route(strtolower($tableName) . '.create') }}" class="btn btn-primary">Créer</a>
+
     <table class="table">
         <thead>
             <tr>
-                @foreach($columns as $column)
+                <!-- Génération dynamique des colonnes -->
+                @foreach ($columns as $column)
                     <th>{{ ucfirst($column) }}</th>
                 @endforeach
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            @foreach(${{ table }} as $item)
+            <!-- Génération dynamique des lignes -->
+            @foreach ($items as $item)
                 <tr>
-                    @foreach($columns as $column)
-                        <td>{{ $item->{{ column }} }}</td>
+                    @foreach ($columns as $column)
+                        <td>{{ $item->$column }}</td>
                     @endforeach
                     <td>
-                        <a href="{{ route('{{ table }}.show', $item) }}" class="btn btn-info">View</a>
-                        <a href="{{ route('{{ table }}.edit', $item) }}" class="btn btn-warning">Edit</a>
-                        <form action="{{ route('{{ table }}.destroy', $item) }}" method="POST" style="display:inline;">
+                        <a href="{{ route(strtolower($tableName) . '.edit', $item->id) }}" class="btn btn-warning">Modifier</a>
+                        <form action="{{ route(strtolower($tableName) . '.destroy', $item->id) }}" method="POST" style="display: inline;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Delete</button>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')">Supprimer</button>
                         </form>
                     </td>
                 </tr>
             @endforeach
         </tbody>
     </table>
+</div>
 @endsection

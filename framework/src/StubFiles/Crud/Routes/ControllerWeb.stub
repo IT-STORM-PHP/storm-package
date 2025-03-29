@@ -1,10 +1,12 @@
+
 use App\Web\Controllers\%modelName%Controller;
 
 // Routes pour %modelName%
-Route::get('/%routeName%', [%modelName%Controller::class, 'index']);
-Route::get('/%routeName%/create', [%modelName%Controller::class, 'create']);
-Route::post('/%routeName%/store', [%modelName%Controller::class, 'store']);
-Route::get('/%routeName%/{id}', [%modelName%Controller::class, 'show']);
-Route::get('/%routeName%/edit/{id}', [%modelName%Controller::class, 'edit']);
-Route::post('/%routeName%/update/{id}', [%modelName%Controller::class, 'update']);
-Route::post('/%routeName%/del/{id}', [%modelName%Controller::class, 'destroy']);
+Route::get('/%routeName%', [%modelName%Controller::class, 'index'])->name('%routeName%.index');
+Route::get('/%routeName%/create', [%modelName%Controller::class, 'create'])->name('%routeName%.create');
+Route::post('/%routeName%/store', [%modelName%Controller::class, 'store'])->name('%routeName%.store');
+Route::get('/%routeName%/{id}', [%modelName%Controller::class, 'show'])->name('%routeName%.show');
+Route::get('/%routeName%/edit/{id}', [%modelName%Controller::class, 'edit'])->name('%routeName%.edit');
+Route::post('/%routeName%/update/{id}', [%modelName%Controller::class, 'update'])->name('%routeName%.update');
+Route::post('/%routeName%/del/{id}', [%modelName%Controller::class, 'destroy'])->name('%routeName%.destroy');
+Route::post('/%routeName%/errors', [%modelName%Controller::class, 'errors'])->name('%routeName%.errors');

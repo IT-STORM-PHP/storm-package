@@ -2,12 +2,15 @@
 
 namespace StormBin\Package\MiddleWare;
 
+use Illuminate\Support\Facades\Session;
+
 class SessionMiddleware
 {
     public static function start()
     {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
+        if (!Session::isStarted()) {
+            Session::start();
         }
     }
 }
+

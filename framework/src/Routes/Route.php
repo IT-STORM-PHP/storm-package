@@ -10,6 +10,21 @@ class Route {
     private static ?self $currentInstance = null; // Instance actuelle pour le chaînage
     private static ?string $lastAddedRouteUri = null; // Track the last added route URI
 
+    public static function getRoutes(): array
+    {
+        return self::$routes;
+    }
+
+    public static function getRouteName(string $uri): ?string
+    {
+        foreach (self::$namedRoutes as $name => $routeUri) {
+            if ($routeUri === $uri) {
+                return $name;
+            }
+        }
+        return null;
+    }
+
     // Ajout de la méthode group
     public static function group(array $attributes, callable $callback) {
         if (isset($attributes['prefix'])) {
@@ -110,6 +125,7 @@ class Route {
     }
 
     private static function handleRoute($route, $action, $params) {
+        // Exécuter les middlewares
         if (isset(self::$middlewares[$route])) {
             foreach (self::$middlewares[$route] as $middleware) {
                 if (is_array($middleware) && count($middleware) === 2) {
@@ -122,17 +138,17 @@ class Route {
                 }
             }
         }
-    
+
         // Convertir les paramètres en tableau associatif
         $paramNames = [];
         preg_match_all('#\{(\w+)\}#', $route, $paramNames);
         $paramNames = $paramNames[1]; // Récupérer les noms des paramètres
-    
+
         $associativeParams = [];
         foreach ($paramNames as $index => $name) {
             $associativeParams[$name] = $params[$index] ?? null;
         }
-    
+
         return self::execute($action, $associativeParams);
     }
 
@@ -149,14 +165,14 @@ class Route {
                 echo "500 - Erreur interne: Contrôleur '$controller' introuvable.";
                 exit();
             }
-    
+
             $controllerInstance = new $controller();
             if (!method_exists($controllerInstance, $method)) {
                 http_response_code(500);
                 echo "500 - Erreur interne: Méthode '$method' non trouvée dans '$controller'.";
                 exit();
             }
-    
+
             // Utiliser la réflexion pour analyser la méthode du contrôleur
             $reflection = new \ReflectionMethod($controllerInstance, $method);
             $args = self::resolveParameters($reflection, $params);
@@ -167,7 +183,7 @@ class Route {
             exit();
         }
     }
-    
+
     /**
      * Résoudre les paramètres pour une fonction ou une méthode.
      *
@@ -177,11 +193,11 @@ class Route {
      */
     private static function resolveParameters(\ReflectionFunctionAbstract $reflection, array $params): array {
         $args = [];
-    
+
         foreach ($reflection->getParameters() as $param) {
             $paramName = $param->getName();
             $paramType = $param->getType();
-    
+
             // Si le paramètre est de type Request, injecter une instance de Request
             if ($paramType && $paramType->getName() === 'StormBin\Package\Request\Request') {
                 $args[] = new \StormBin\Package\Request\Request();
@@ -190,7 +206,7 @@ class Route {
                 $args[] = $params[$paramName] ?? null;
             }
         }
-    
+
         return $args;
     }
 
