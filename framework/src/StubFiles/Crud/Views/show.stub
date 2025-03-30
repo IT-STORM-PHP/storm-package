@@ -1,23 +1,23 @@
-@extends('base.base')
+@extends('layouts.app')
 
-@section('titre', 'Détails de {{ ucfirst($tableName) }}')
+@section('title', 'Détails de {{ModelName}}')
 
 @section('content')
 <div class="container">
-    <h1>Détails de {{ ucfirst($tableName) }}</h1>
+    <h1>@yield('title')</h1>
 
-    <table class="table">
-        <tbody>
-            <!-- Génération dynamique des champs -->
-            @foreach ($columns as $column)
-                <tr>
-                    <th>{{ ucfirst($column) }}</th>
-                    <td>{{ $item->$column }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <div class="card">
+        <div class="card-body">
+            <table class="table">
+                <tbody>
+                    {{ShowFields}}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-    <a href="{{ route(strtolower($tableName) . '.index') }}" class="btn btn-primary">Retour à la liste</a>
+    <a href="{{ route('{{TableName}}.index') }}" class="btn btn-primary">
+        Retour à la liste
+    </a>
 </div>
 @endsection

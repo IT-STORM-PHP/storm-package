@@ -1,25 +1,18 @@
-@extends('base.base')
+@extends('layouts.app')
 
-@section('titre', 'Créer un(e) {{ ucfirst($tableName) }}')
+@section('title', 'Créer un(e) {{ModelName}}')
 
 @section('content')
 <div class="container">
-    <h1>Créer un(e) {{ ucfirst($tableName) }}</h1>
+    <h1>@yield('title')</h1>
 
-    <form action="{{ route(strtolower($tableName) . '.store') }}" method="POST">
+    <form action="/{{TableName}}/store" method="POST">
         @csrf
 
-        <!-- Génération dynamique des champs du formulaire -->
-        @foreach ($columns as $column)
-            @if (!in_array($column, ['id', 'created_at', 'updated_at']))
-                <div class="form-group">
-                    <label for="{{ $column }}">{{ ucfirst($column) }}</label>
-                    <input type="text" name="{{ $column }}" id="{{ $column }}" class="form-control">
-                </div>
-            @endif
-        @endforeach
+        {{FormFields}}
 
         <button type="submit" class="btn btn-primary">Créer</button>
+        <a href="{{ route('{{TableName}}.index') }}" class="btn btn-secondary">Annuler</a>
     </form>
 </div>
 @endsection

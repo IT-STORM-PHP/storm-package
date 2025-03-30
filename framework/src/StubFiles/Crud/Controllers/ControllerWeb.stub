@@ -6,141 +6,165 @@ use StormBin\Package\Controllers\Controller;
 use StormBin\Package\Views\Views;
 use App\Models\%modelName%;
 use StormBin\Package\Request\Request;
-use Illuminate\Validation\ValidationException; // Si tu utilises une validation similaire à Laravel
-use Illuminate\Database\Eloquent\ModelNotFoundException; // Si tu utilises des exceptions similaires
-use Illuminate\Support\Facades\Log; // Si tu utilises un système de logging similaire
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 %imports%
 
 class %controllerName% extends Controller
 {
-    /**
-     * Afficher la liste des ressources.
-     */
     public function index()
     {
         try {
-            $items = %modelName%::with([%withRelations%])->get();
+            $items = %modelName%::with([%withRelations%])->paginate(10);
             return Views::render('%modelName%.index', ['items' => $items]);
+            
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la récupération des ressources : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
+            Log::error('Index error: ' . $e->getMessage());
+            echo "Erreur: Impossible de charger les données";
+            return;
         }
     }
 
-    /**
-     * Afficher le formulaire de création d'une nouvelle ressource.
-     */
     public function create()
     {
         return Views::render('%modelName%.create');
     }
 
-    /**
-     * Stocker une nouvelle ressource dans la base de données.
-     */
     public function store(Request $request)
     {
         try {
-            // Valider les données de la requête
-            $validatedData = $request->validate(%modelName%::getRules(), %modelName%::getMessages());
-
-            // Créer une nouvelle entité avec les données validées
-            $item = %modelName%::create($validatedData);
-
-            // Rediriger vers la liste des ressources
-            return Views::redirect(route('%modelName%.index'));
+            $validated = $request->validate(
+                %modelName%::getRules(),
+                %modelName%::getMessages()
+            );
+            
+            %modelName%::create($validated);
+            
+            return Views::redirect(route('%modelNameLower%.index'));
+                
         } catch (ValidationException $e) {
-            // Rediriger vers le formulaire de création avec les erreurs de validation
-            return Views::redirect(route('%modelName%.create'));
+            echo "Erreur: Données invalides";
+            return;
+                
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la création de la ressource : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
+            Log::error('Store error: ' . $e->getMessage());
+            echo "Erreur: Impossible de créer l'élément";
+            return;
         }
     }
 
-    /**
-     * Afficher une ressource spécifique.
-     */
     public function show($id)
     {
         try {
             $item = %modelName%::with([%withRelations%])->findOrFail($id);
             return Views::render('%modelName%.show', ['item' => $item]);
+            
         } catch (ModelNotFoundException $e) {
-            return Views::redirect(route('%modelName%.error'));
+            echo "Erreur: Élément non trouvé";
+            return;
+                
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la récupération de la ressource : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
+            Log::error('Show error: ' . $e->getMessage());
+            echo "Erreur: Impossible d'afficher l'élément";
+            return;
         }
     }
 
-    /**
-     * Afficher le formulaire de modification d'une ressource.
-     */
     public function edit($id)
     {
         try {
             $item = %modelName%::with([%withRelations%])->findOrFail($id);
             return Views::render('%modelName%.edit', ['item' => $item]);
+            
         } catch (ModelNotFoundException $e) {
-            return Views::redirect(route('%modelName%.error'));
+            echo "Erreur: Élément non trouvé";
+            return;
+                
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la récupération de la ressource : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
+            Log::error('Edit error: ' . $e->getMessage());
+            echo "Erreur: Impossible d'éditer l'élément";
+            return;
         }
     }
 
-    /**
-     * Mettre à jour une ressource dans la base de données.
-     */
     public function update(Request $request, $id)
-    {
-        try {
-            // Valider les données de la requête
-            $validatedData = $request->validate(%modelName%::getRules(), %modelName%::getMessages());
-
-            // Trouver l'entité à mettre à jour
-            $item = %modelName%::findOrFail($id);
-
-            // Mettre à jour l'entité avec les données validées
-            $item->update($validatedData);
-
-            // Rediriger vers la liste des ressources
-            return Views::redirect(route('%modelName%.index'));
-        } catch (ValidationException $e) {
-            // Rediriger vers le formulaire de modification
-            return Views::redirect(route('%modelName%.edit', $id));
-        } catch (ModelNotFoundException $e) {
-            return Views::redirect(route('%modelName%.error'));
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la mise à jour de la ressource : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
-        }
+{
+    try {
+        // Debug: Afficher les données reçues (décommenter si nécessaire)
+        // echo "<pre>Données reçues:\n";
+        // print_r($request->all());
+        // echo "</pre>";
+        
+        $validated = $request->validate(
+            %modelName%::getRules(),
+            %modelName%::getMessages()
+        );
+        
+        // Debug: Afficher les données validées (décommenter si nécessaire)
+        // echo "<pre>Données validées:\n";
+        // print_r($validated);
+        // echo "</pre>";
+        
+        $item = %modelName%::findOrFail($id);
+        
+        // Debug: Afficher l'état avant mise à jour (décommenter si nécessaire)
+        // echo "<pre>Avant mise à jour:\n";
+        // print_r($item->toArray());
+        // echo "</pre>";
+        
+        $item->update($validated);
+        
+        // Debug: Afficher l'état après mise à jour (décommenter si nécessaire)
+        // echo "<pre>Après mise à jour:\n";
+        // print_r($item->fresh()->toArray());
+        // echo "</pre>";
+        
+        return Views::redirect(route('%modelNameLower%.index'));
+            
+    } catch (ValidationException $e) {
+        // Debug: Afficher les erreurs de validation (décommenter si nécessaire)
+        // echo "<pre>Erreurs de validation:\n";
+        // print_r($e->errors());
+        // echo "</pre>";
+        echo "Erreur: Données invalides";
+        return;
+            
+    } catch (ModelNotFoundException $e) {
+        echo "Erreur: Élément non trouvé";
+        return;
+            
+    } catch (\Exception $e) {
+        // Debug: Afficher l'erreur complète (décommenter si nécessaire)
+        // echo "<pre>Erreur:\n";
+        // echo $e->getMessage();
+        // echo "\nStack Trace:\n";
+        // echo $e->getTraceAsString();
+        // echo "</pre>";
+        
+        Log::error('Update error: ' . $e->getMessage());
+        echo "Erreur: Impossible de mettre à jour" . $e->getMessage();
+        return;
     }
+}
 
-    /**
-     * Supprimer une ressource de la base de données.
-     */
     public function destroy($id)
     {
         try {
             $item = %modelName%::findOrFail($id);
             $item->delete();
-            return Views::redirect(route('%modelName%.index'));
+            
+            return Views::redirect(route('%modelNameLower%.index'));
+                
         } catch (ModelNotFoundException $e) {
-            return Views::redirect(route('%modelName%.error'));
+            echo "Erreur: Élément non trouvé";
+            return;
+                
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la suppression de la ressource : ' . $e->getMessage());
-            return Views::redirect(route('%modelName%.error'));
+            Log::error('Delete error: ' . $e->getMessage());
+            echo "Erreur: Impossible de supprimer";
+            return;
         }
-    }
-
-    /**
-     * Afficher la page d'erreur.
-     */
-    public function error()
-    {
-        return Views::render('%modelName%.error');
     }
 }

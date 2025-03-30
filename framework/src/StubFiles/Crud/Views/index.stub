@@ -1,40 +1,53 @@
-@extends('base.base')
+@extends('layouts.app')
 
-@section('titre', 'Liste des {{ ucfirst($tableName) }}')
+@section('title', 'Liste des {{ModelNamePlural}}')
 
 @section('content')
 <div class="container">
-    <h1>Liste des {{ ucfirst($tableName) }}</h1>
-    <a href="{{ route(strtolower($tableName) . '.create') }}" class="btn btn-primary">Créer</a>
+    <h1>@yield('title')</h1>
+    
+    <a href="{{ route('{{TableName}}.create') }}" class="btn btn-primary mb-3">
+        Créer {{ModelName}}
+    </a>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <!-- Génération dynamique des colonnes -->
-                @foreach ($columns as $column)
-                    <th>{{ ucfirst($column) }}</th>
-                @endforeach
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Génération dynamique des lignes -->
-            @foreach ($items as $item)
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    @foreach ($columns as $column)
-                        <td>{{ $item->$column }}</td>
-                    @endforeach
-                    <td>
-                        <a href="{{ route(strtolower($tableName) . '.edit', $item->id) }}" class="btn btn-warning">Modifier</a>
-                        <form action="{{ route(strtolower($tableName) . '.destroy', $item->id) }}" method="POST" style="display: inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')">Supprimer</button>
-                        </form>
-                    </td>
+                    {{TableHeaders}}
+                    <th>Actions</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach($items as $item)
+                    <tr>
+                        {{TableRows}}
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ route('{{TableName}}.edit', ['id'=>$item->id]) }}" 
+                                   class="btn btn-sm btn-warning">
+                                    Modifier
+                                </a>
+                                <form action="{{ url('{{TableName}}/del/' . $item->id) }}" 
+                                      method="POST">
+                                    <button type="submit" 
+                                            class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Supprimer cet élément ?')">
+                                        Supprimer
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 </div>
 @endsection

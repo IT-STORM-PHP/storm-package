@@ -14,6 +14,10 @@ class Route {
     {
         return self::$routes;
     }
+    public static function getUri(string $name): ?string
+    {
+        return self::$namedRoutes[$name]['path'] ?? null;
+    }
 
     public static function getRouteName(string $uri): ?string
     {
@@ -42,17 +46,18 @@ class Route {
         if (self::$groupPrefix) {
             $uri = self::$groupPrefix . $uri;
         }
-
+    
         self::$routes[strtoupper($method)][$uri] = $action;
-
-        // Track the last added route URI
         self::$lastAddedRouteUri = $uri;
-
-        // If a name is given, associate it with the route
+    
         if ($name) {
-            self::$namedRoutes[$name] = $uri;
+            self::$namedRoutes[$name] = [
+                'uri' => $uri,
+                'method' => strtoupper($method)
+            ];
         }
     }
+    
 
     public static function get(string $uri, array|string|callable $action, string $name = ''): self {
         self::add('GET', $uri, $action, $name);
@@ -75,13 +80,15 @@ class Route {
     }
 
     public static function name(string $name): self {
-        if (self::$lastAddedRouteUri) {
-            self::$namedRoutes[$name] = self::$lastAddedRouteUri;
+        if (self::$lastAddedRouteUri && isset(self::$routes['GET'][self::$lastAddedRouteUri])) {
+            self::$namedRoutes[$name] = [
+                'uri' => self::$lastAddedRouteUri,
+                'method' => 'GET'
+            ];
         }
-
-        // Retourner l'instance actuelle pour le chaînage
         return self::$currentInstance;
     }
+    
 
     public static function dispatch() {
         $method = $_SERVER['REQUEST_METHOD'];
@@ -212,19 +219,81 @@ class Route {
 
     // Méthode pour récupérer une route nommée
     public static function route(string $name, array $params = []): string {
-        if (isset(self::$namedRoutes[$name])) {
-            $uri = self::$namedRoutes[$name];
-
-            // Remplacer les paramètres dans l'URL
-            if (!empty($params)) {
-                foreach ($params as $key => $value) {
-                    $uri = str_replace('{' . $key . '}', $value, $uri);
-                }
-            }
-
-            return $uri;
+        if (!isset(self::$namedRoutes[$name])) {
+            throw new \RuntimeException("Route named '$name' not found in registered routes.");
         }
-
-        throw new \Exception("Route nommée '$name' introuvable.");
+    
+        $routeData = self::$namedRoutes[$name];
+        $uri = $routeData['uri'];
+    
+        // Extract parameter names from URI
+        preg_match_all('/\{(\w+)\}/', $uri, $matches);
+        $paramNames = $matches[1];
+    
+        // Check for missing parameters
+        $missingParams = array_diff($paramNames, array_keys($params));
+        if (!empty($missingParams)) {
+            throw new \RuntimeException(
+                "Missing parameters for route '$name': " . implode(', ', $missingParams)
+            );
+        }
+    
+        // Replace parameters in URI
+        foreach ($params as $key => $value) {
+            if (!in_array($key, $paramNames)) {
+                throw new \RuntimeException(
+                    "Unknown parameter '$key' for route '$name'"
+                );
+            }
+            $uri = str_replace('{'.$key.'}', urlencode($value), $uri);
+        }
+    
+        return $uri;
     }
+    public static function middleware(string $route, array|string|callable $middleware): self {
+        if (is_array($middleware)) {
+            self::$middlewares[$route][] = $middleware;
+        } else {
+            self::$middlewares[$route][] = [$middleware, 'handle'];
+        }
+        return self::$currentInstance;
+    }
+    public static function before(string $prefix, array|string|callable $middleware): self {
+        if (is_array($middleware)) {
+            self::$beforeMiddlewares[$prefix][] = $middleware;
+        } else {
+            self::$beforeMiddlewares[$prefix][] = [$middleware, 'handle'];
+        }
+        return self::$currentInstance;
+    }
+    public static function getLastAddedRouteUri(): ?string {
+        return self::$lastAddedRouteUri;
+    }
+    public static function getGroupPrefix(): string {
+        return self::$groupPrefix;
+    }
+    public static function getCurrentInstance(): ?self {
+        return self::$currentInstance;
+    }
+    public static function setCurrentInstance(self $instance): void {
+        self::$currentInstance = $instance;
+    }
+    public static function getMiddlewares(): array {
+        return self::$middlewares;
+    }
+    public static function getBeforeMiddlewares(): array {
+        return self::$beforeMiddlewares;
+    }
+    public static function getNamedRoutes(): array {
+        return self::$namedRoutes;
+    }
+    public static function getRoute(string $name): ?array {
+        return self::$namedRoutes[$name] ?? null;
+    }
+    public static function getRouteMethod(string $name): ?string {
+        return self::$namedRoutes[$name]['method'] ?? null;
+    }
+    public static function getRouteUri(string $name): ?string {
+        return self::$namedRoutes[$name]['uri'] ?? null;
+    }    
 }
