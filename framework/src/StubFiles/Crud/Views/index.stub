@@ -28,7 +28,7 @@
                 @foreach($items as $item)
                     <tr>
                         {{TableRows}}
-                        <td>
+                        <!--<td>
                             <div class="btn-group">
                                 <a href="{{ route('{{TableName}}.edit', ['id'=>$item->id]) }}" 
                                    class="btn btn-sm btn-warning">
@@ -43,7 +43,7 @@
                                     </button>
                                 </form>
                             </div>
-                        </td>
+                        </td> -->
                     </tr>
                 @endforeach
             </tbody>

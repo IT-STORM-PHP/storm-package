@@ -9,9 +9,11 @@ class ViewGenerator
 {
     protected $tableName;
     protected $columns;
+    protected $primaryKey;
     protected $foreignKeys;
     protected $modelName;
     protected $enums = [];
+
 
     public function __construct($tableName, $columns, $foreignKeys)
     {
@@ -19,6 +21,7 @@ class ViewGenerator
         $this->modelName = Str::singular(ucfirst($tableName));
         $this->columns = $this->enhanceColumns($columns);
         $this->foreignKeys = is_array($foreignKeys) ? $foreignKeys : [];
+        $this->primaryKey = $this->getPrimaryKey();
         $this->detectEnums();
     }
 
@@ -207,7 +210,7 @@ class ViewGenerator
             '{{ModelName}}' => $this->modelName,
             '{{ModelNamePlural}}' => Str::plural($this->modelName),
             '{{TableHeaders}}' => $this->generateTableHeaders(),
-            '{{TableRows}}' => $this->generateTableRows(),
+            '{{TableRows}}' => $this->generateTableRows($this->tableName),
             '{{FormFields}}' => $this->generateFormFields($type === 'edit'),
             '{{ShowFields}}' => $this->generateShowFields(),
             '{{Relations}}' => $this->generateRelations()
@@ -232,20 +235,39 @@ class ViewGenerator
         return $headers;
     }
 
-    protected function generateTableRows()
-    {
-        $rows = '';
-        foreach ($this->columns as $column) {
-            if (!in_array($column['name'], ['created_at', 'updated_at'])) {
-                if ($column['is_foreign_key'] && isset($column['relation'])) {
-                    $rows .= "<td>{{ \$item->{$column['relation']['table']}->{$column['relation']['display']} ?? 'N/A' }}</td>\n";
-                } else {
-                    $rows .= "<td>{{ \$item->{$column['name']} }}</td>\n";
-                }
+    protected function generateTableRows($tableName)
+{
+    $rows = '';
+    foreach ($this->columns as $column) {
+        if (!in_array($column['name'], ['created_at', 'updated_at'])) {
+            if ($column['is_foreign_key'] && isset($column['relation'])) {
+                $rows .= "<td>{{ \$item->{$column['relation']['table']}->{$column['relation']['display']} ?? 'N/A' }}</td>\n";
+            } else {
+                $rows .= "<td>{{ \$item->{$column['name']} }}</td>\n";
             }
         }
-        return $rows;
     }
+    
+    // Ajout des boutons d'action avec la clé primaire dynamique
+    $rows .= "<td>
+        <div class='btn-group'>
+            <a href=\"{{ route('{$this->tableName}.edit', ['id'=>\$item->{$this->primaryKey}]) }}\" 
+               class='btn btn-sm btn-warning'>
+                Modifier
+            </a>
+            <form action=\"{{ url('{$this->tableName}/del/' . \$item->{$this->primaryKey}) }}\" 
+                  method='POST'>
+                <button type='submit' 
+                        class='btn btn-sm btn-danger'
+                        onclick=\"return confirm('Supprimer cet élément ?')\">
+                    Supprimer
+                </button>
+            </form>
+        </div>
+    </td>";
+    
+    return $rows;
+}
 
     protected function generateFormFields($forEdit = false)
     {
@@ -323,6 +345,30 @@ class ViewGenerator
     $input
 </div>\n";
     }
+
+    protected function getPrimaryKey()
+{
+    try {
+        $connection = Capsule::connection();
+        $databaseType = $connection->getDriverName();
+
+        if ($databaseType === 'mysql') {
+            $result = $connection->select("SHOW KEYS FROM {$this->tableName} WHERE Key_name = 'PRIMARY'");
+            return $result[0]->Column_name ?? 'id';
+        } elseif ($databaseType === 'pgsql') {
+            $result = $connection->select("
+                SELECT a.attname
+                FROM pg_index i
+                JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                WHERE i.indrelid = '{$this->tableName}'::regclass AND i.indisprimary
+            ");
+            return $result[0]->attname ?? 'id';
+        }
+    } catch (\Exception $e) {
+        return 'id';
+    }
+    return 'id';
+}
 
     protected function generateShowFields()
     {
