@@ -27,8 +27,8 @@ class Views
     public static function init()
     {
         if (!self::$instance) {
-            $views = dirname(__DIR__, 5) . '/Views'; // Dossier des vues
-            $cache = dirname(__DIR__, 5) . '/storage/cache/views'; // Dossier de cache
+            $views = dirname(__DIR__, 6) . '/Views'; // Dossier des vues
+            $cache = dirname(__DIR__, 6) . '/storage/cache/views'; // Dossier de cache
 
             $filesystem = new Filesystem();
             $eventDispatcher = new Dispatcher();
