@@ -3,17 +3,18 @@
     "type": "library",
     "keywords": ["framework", "storm", "laravel"],
     "description": "Ceci est un framework générant du code inspiré de laravel pour aider les developpeur à créer des applications web et qui utilise au paravant Laravel.",
+    
     "require": {
         "php": ">=8.0",
-        "illuminate/database": "^10.0",
-        "illuminate/view": "^10.0",
+        "illuminate/database": "^12.0",
+        "illuminate/view": "^12.0",
         "illuminate/filesystem": "^10.0",
         "illuminate/events": "^10.0",
-        "illuminate/http": "^10.48",
-        "illuminate/routing": "^10.48",
-        "illuminate/log": "^10.48",
-        "illuminate/config": "^10.48",
-        "illuminate/pagination": "^10.48"
+        "illuminate/http": "^12.2",
+        "illuminate/routing": "^12.2",
+        "illuminate/log": "^12.2",
+        "illuminate/config": "^12.2",
+        "illuminate/pagination": "^12.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
