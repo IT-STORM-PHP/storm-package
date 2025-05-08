@@ -11,7 +11,7 @@ use Dotenv\Dotenv;
 if (!function_exists('base_path')) {
     function base_path($path = '')
     {
-        return dirname(__DIR__, 5) . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+        return dirname(__DIR__, 6) . ($path ? DIRECTORY_SEPARATOR . $path : $path);
     }
 }
 
@@ -20,7 +20,7 @@ class Database
     public static function init()
     {
         // Définir le chemin vers la racine
-        $rootPath = dirname(__DIR__, 5);
+        $rootPath = dirname(__DIR__, 6);
         $envFilePath = $rootPath . '/.env';
 
         // Charger le fichier .env si disponible
