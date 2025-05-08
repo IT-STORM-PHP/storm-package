@@ -1,7 +1,8 @@
 {
-    "name": "storm_bin/project",
+    "name": "storm_bin/package",
     "type": "library",
-    "description": "Storm v0",
+    "keywords": ["framework", "storm", "laravel"],
+    "description": "Ceci est un framework générant du code inspiré de laravel pour aider les developpeur à créer des applications web et qui utilise au paravant Laravel.",
     "require": {
         "php": ">=8.0",
         "illuminate/database": "^10.0",
@@ -33,11 +34,15 @@
     "authors": [
         {
             "name": "Storm",
-            "email": "storm@mail.com"
+            "email": "godwilloussou@gmail.com"
         }
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "support": {
+        "issues": "https://github.com/IT-STORM-PHP/strom-projet",
+        "source": "https://github.com/IT-STORM-PHP/strom-projet"
+    },
     "extra": {
         "branch-alias": {
             "dev-main": "1.0-dev"

@@ -169,7 +169,7 @@ class Kernel
 
         // Lancer le serveur en arrière-plan et capturer les requêtes
         $logFile = "/tmp/storm_server.log";
-        exec("php -S $host:$port -t public > $logFile 2>&1 &");
+        exec("php -S $host:$port -t public");
 
         while (true) {
             if (file_exists($logFile)) {
