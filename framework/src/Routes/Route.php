@@ -94,15 +94,21 @@ class Route {
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = strtok($_SERVER['REQUEST_URI'], '?');
         $foundRoute = false;
-
+    
         foreach (self::$beforeMiddlewares as $prefix => $callbacks) {
             if (self::matchPrefix($uri, $prefix)) {
                 foreach ($callbacks as $callback) {
-                    call_user_func($callback);
+                    // Vérifier si le callback est une instance de contrôleur
+                    if (is_array($callback) && class_exists($callback[0])) {
+                        $controller = new $callback[0](); // Créer une instance du contrôleur
+                        call_user_func([$controller, $callback[1]]); // Appeler la méthode d'instance
+                    } else {
+                        call_user_func($callback);
+                    }
                 }
             }
         }
-
+    
         foreach (self::$routes as $routeMethod => $routes) {
             foreach ($routes as $route => $action) {
                 $pattern = preg_replace('#\{(\w+)\}#', '([^/]+)', $route);
@@ -111,21 +117,22 @@ class Route {
                     if ($routeMethod === $method) {
                         return self::handleRoute($route, $action, $matches);
                     }
-                    $foundRoute = true;
                 }
+                $foundRoute = true;
             }
         }
-
+    
         if ($foundRoute) {
             http_response_code(405);
             echo "405 - Méthode non autorisée";
             exit();
         }
-
+    
         http_response_code(404);
         echo "404 - Page introuvable";
         exit();
     }
+    
 
     private static function matchPrefix(string $uri, string $prefix): bool {
         return strpos($uri, $prefix) === 0;
@@ -250,14 +257,22 @@ class Route {
     
         return $uri;
     }
-    public static function middleware(string $route, array|string|callable $middleware): self {
-        if (is_array($middleware)) {
-            self::$middlewares[$route][] = $middleware;
+    public static function middleware($routes, $middleware): self {
+        // Si $routes est un tableau de plusieurs routes
+        if (is_array($routes)) {
+            foreach ($routes as $route) {
+                // Vérifier si $middleware est un tableau ou une fonction de middleware
+                self::$middlewares[$route][] = is_array($middleware) ? $middleware : [$middleware, 'handle'];
+            }
         } else {
-            self::$middlewares[$route][] = [$middleware, 'handle'];
+            // Si c'est une seule route
+            self::$middlewares[$routes][] = is_array($middleware) ? $middleware : [$middleware, 'handle'];
         }
+    
         return self::$currentInstance;
     }
+    
+    
     public static function before(string $prefix, array|string|callable $middleware): self {
         if (is_array($middleware)) {
             self::$beforeMiddlewares[$prefix][] = $middleware;
@@ -266,6 +281,15 @@ class Route {
         }
         return self::$currentInstance;
     }
+    public static function beforeMiddleware(array $routes, $middleware): self {
+        // Appliquer le middleware avant d'exécuter les routes spécifiées
+        foreach ($routes as $route) {
+            self::$beforeMiddlewares[$route][] = $middleware;
+        }
+        
+        return self::$currentInstance;
+    }
+    
     public static function getLastAddedRouteUri(): ?string {
         return self::$lastAddedRouteUri;
     }
