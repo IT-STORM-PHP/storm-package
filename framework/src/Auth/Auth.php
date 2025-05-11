@@ -42,20 +42,21 @@ class Auth
      * @return void
      */
     public static function login(array $user): void
-    {
-        self::startSession();
-        
-        // Empêche la fixation de session
-        session_regenerate_id(true);
+{
+    self::startSession();
+    session_regenerate_id(true);  // Sécurise la session
 
-        $_SESSION['user'] = [
-            'id' => $user['id'],
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'roles' => $user['roles'] ?? [], // Gestion des rôles (optionnel)
-            'session_start' => time(), // Date de début de session
-        ];
+    // Vérifie et stocke dynamiquement toutes les données utilisateur
+    foreach ($user as $key => $value) {
+        // On ne veut pas écraser les informations déjà stockées
+        if (!isset($_SESSION['user'][$key])) {
+            $_SESSION['user'][$key] = $value;
+        }
     }
+
+    // Ajoute aussi l'heure de début de session
+    $_SESSION['user']['session_start'] = time();
+}
 
     /**
      * Déconnecte l'utilisateur en détruisant la session.
