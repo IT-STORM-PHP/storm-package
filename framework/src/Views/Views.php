@@ -57,10 +57,17 @@ class Views
     /**
      * Redirige vers une URL.
      */
-    public static function redirect(string $url = null, int $status = 302, array $headers = []): RedirectResponse
-    {
-        return Redirect::to($url, $status, $headers);
+    public static function redirect(string $url = null, int $status = 302, array $headers = []): void
+{
+    // Appliquer les en-têtes personnalisés si nécessaires
+    foreach ($headers as $key => $value) {
+        header("$key: $value", true);
     }
+
+    // Redirection propre
+    header("Location: $url", true, $status);
+    exit; // ⚠️ Important : empêche toute sortie supplémentaire
+}
 
     /**
      * Redirige vers la page précédente.
