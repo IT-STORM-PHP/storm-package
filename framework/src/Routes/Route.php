@@ -80,14 +80,20 @@ class Route {
     }
 
     public static function name(string $name): self {
-        if (self::$lastAddedRouteUri && isset(self::$routes['GET'][self::$lastAddedRouteUri])) {
-            self::$namedRoutes[$name] = [
-                'uri' => self::$lastAddedRouteUri,
-                'method' => 'GET'
-            ];
+        if (self::$lastAddedRouteUri) {
+            foreach (['GET', 'POST', 'PUT', 'DELETE'] as $method) {
+                if (isset(self::$routes[$method][self::$lastAddedRouteUri])) {
+                    self::$namedRoutes[$name] = [
+                        'uri' => self::$lastAddedRouteUri,
+                        'method' => $method
+                    ];
+                    break;
+                }
+            }
         }
         return self::$currentInstance;
     }
+
     
 
     public static function dispatch() {
