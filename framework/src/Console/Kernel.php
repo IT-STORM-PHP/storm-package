@@ -196,10 +196,12 @@ class Kernel
                     $method = $matches[2];
                     $url = $matches[3];
                     $time = rand(10, 500);
-                    $logLine = "$url:$method:$statusCode " . str_repeat(".", 45) . " ~ {$time}ms";
+                    $datetime = date("Y-m-d H:i:s"); // Format standard lisible
+                    $logLine = "$datetime $url:$method:$statusCode " . str_repeat(".", 45) . " ~ {$time}ms";
 
                     echo "\n$logLine\n";
                     file_put_contents($logFile, $logLine . PHP_EOL, FILE_APPEND);
+
                 }
             }
 
