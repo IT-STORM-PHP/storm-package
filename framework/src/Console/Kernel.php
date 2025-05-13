@@ -122,75 +122,99 @@ class Kernel
 
     // Méthode pour démarrer le serveur
     protected function serve()
-    {
-        global $argv;
+{
+    global $argv;
 
-        $host = "127.0.0.1";
-        $port = 8000;
+    $host = "127.0.0.1";
+    $port = 8000;
 
-        foreach ($argv as $arg) {
-            if (strpos($arg, '--host=') === 0) {
-                $host = substr($arg, 7);
-            } elseif (strpos($arg, '--port=') === 0) {
-                $port = (int) substr($arg, 7);
-            }
-        }
-
-        if (!shell_exec('php -v')) {
-            $this->log("PHP n'est pas installé ou non accessible depuis le terminal.", "error");
-            exit(1);
-        }
-
-        if (!is_dir("public")) {
-            $this->log("Le dossier 'public' est introuvable. Vérifiez votre projet.", "error");
-            exit(1);
-        }
-
-        $server = @stream_socket_server("tcp://$host:$port");
-        if (!$server) {
-            $this->log("⚠️  Impossible d'écouter sur $host:$port (Adresse déjà utilisée).", "error");
-            $port++;
-            $this->log("🔄 Recherche d'un port disponible...", "warning");
-
-            while (!$server) {
-                $server = @stream_socket_server("tcp://$host:$port");
-                if (!$server) {
-                    $port++;
-                }
-            }
-
-            fclose($server);
-        } else {
-            fclose($server);
-        }
-
-        $this->log("✅ Serveur en cours d'exécution sur: \033[4;34mhttp://$host:$port\033[0m", "success");
-        $this->log("🔵 Appuyez sur Ctrl + C pour arrêter le serveur", "info");
-
-        // Lancer le serveur en arrière-plan et capturer les requêtes
-        $logFile = "/tmp/storm_server.log";
-        exec("php -S $host:$port -t public");
-
-        while (true) {
-            if (file_exists($logFile)) {
-                $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                foreach ($lines as $line) {
-                    // Mettre à jour l'expression régulière pour capturer le code de réponse, la méthode et l'URL
-                    if (preg_match('/\[.*\] \d+\.\d+\.\d+\.\d+:\d+ \[(\d+)\]: (\w+) (\/[^\s]*)/', $line, $matches)) {
-                        $statusCode = $matches[1]; // Code de réponse HTTP (200, 404, etc.)
-                        $method = $matches[2];    // Méthode HTTP (GET, POST, etc.)
-                        $url = $matches[3];       // L'URL
-                        $time = rand(10, 500);   // Simuler le temps de réponse en ms
-
-                        // Afficher le log avec le code de réponse, la méthode et l'URL
-                        echo "\n$url:$method:$statusCode " . str_repeat(".", 45) . " ~ {$time}ms\n";
-                    }
-                }
-                file_put_contents($logFile, ""); // Nettoyer le fichier
-            }
-            usleep(500000); // Attendre 0.5s pour éviter une surcharge CPU
+    foreach ($argv as $arg) {
+        if (strpos($arg, '--host=') === 0) {
+            $host = substr($arg, 7);
+        } elseif (strpos($arg, '--port=') === 0) {
+            $port = (int) substr($arg, 7);
         }
     }
+
+    if (!shell_exec('php -v')) {
+        $this->log("PHP n'est pas installé ou non accessible depuis le terminal.", "error");
+        exit(1);
+    }
+
+    if (!is_dir("public")) {
+        $this->log("Le dossier 'public' est introuvable. Vérifiez votre projet.", "error");
+        exit(1);
+    }
+
+    // Vérifier si le port est libre
+    $server = @stream_socket_server("tcp://$host:$port");
+    if (!$server) {
+        $this->log("⚠️  Port $port déjà utilisé. Recherche d'un port libre...", "warning");
+        while (!$server) {
+            $port++;
+            $server = @stream_socket_server("tcp://$host:$port");
+        }
+        fclose($server);
+    } else {
+        fclose($server);
+    }
+
+    $this->log("✅ Serveur en cours d'exécution sur: \033[4;34mhttp://$host:$port\033[0m", "success");
+    $this->log("🔵 Appuyez sur Ctrl + C pour arrêter le serveur", "info");
+
+    // Chemin du projet
+    $rootPath = dirname(__DIR__, 6);
+    $logDir = $rootPath . '/storage/logs';
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0777, true);
+    }
+    $logFile = $logDir . '/storm.log';
+
+    // Commande du serveur PHP
+    $cmd = "php -S $host:$port -t public";
+    $descriptorspec = [
+        0 => ["pipe", "r"],
+        1 => ["pipe", "w"],
+        2 => ["pipe", "w"],
+    ];
+
+    $process = proc_open($cmd, $descriptorspec, $pipes);
+
+    if (is_resource($process)) {
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        while (true) {
+            $output = stream_get_contents($pipes[1]);
+            $error = stream_get_contents($pipes[2]);
+            $lines = array_filter(explode("\n", $output . $error));
+
+            foreach ($lines as $line) {
+                // Filtrer les logs HTTP uniquement
+                if (preg_match('/\[\w+ \w+ \d+ [\d:]+ \d+\] \d+\.\d+\.\d+\.\d+:\d+ \[(\d+)\]: (\w+) ([^\s]+)/', $line, $matches)) {
+                    $statusCode = $matches[1];
+                    $method = $matches[2];
+                    $url = $matches[3];
+                    $time = rand(10, 500);
+                    $logLine = "$url:$method:$statusCode " . str_repeat(".", 45) . " ~ {$time}ms";
+
+                    echo "\n$logLine\n";
+                    file_put_contents($logFile, $logLine . PHP_EOL, FILE_APPEND);
+                }
+            }
+
+            usleep(500000); // Pause pour éviter surcharge CPU
+        }
+
+        fclose($pipes[0]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+    } else {
+        $this->log("❌ Impossible de démarrer le serveur PHP intégré.", "error");
+    }
+}
+
 
     // Fonction pour afficher des logs colorés
     protected function log($message, $type = "info")
